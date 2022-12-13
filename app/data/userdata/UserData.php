@@ -8,9 +8,14 @@ use App;
 use data\failure\CorrectnessProblem;
 use data\failure\Failure;
 use Exception;
+use http\Client\Curl\User;
 use PDO;
 
+# todo: format sql strings
+# todo: creates tests and test data
 class UserData {
+  
+  public static array $test_user_data;
   
   public int $id = -1;
   public string $username = "";
@@ -43,89 +48,83 @@ class UserData {
   /**
    * @throws Failure
    */
-  public static function getUserById(int $id): ?UserData {
-    $sql = "SELECT * FROM users WHERE id = :id";
-    try {
-      $stmt = App::$pdo->prepare($sql);
-      $stmt->execute(["id" => $id]);
-      $stmt->setFetchMode(PDO::FETCH_CLASS, UserData::class);
-      
-      return $stmt->fetch();
-    } catch (Exception $e) {
+  public function checkCorrectnessWhereCorrectnessIsExpected(
+    string $function_name
+  ): void {
+    $errors = $this->checkUserDataCorrectness();
+    if (count($errors) > 0) {
       throw new Failure(
-        userDisplayError: "Database error: Ask the admin to check the logs.",
-        message:          "Failed to get user by id: " . $sql . " the id was: " . $id,
-        previous:         $e
+        userDisplayError: "Failed to update user because of internal error by bad coding.",
+        message:          "Bad Userdata reached $function_name .<br>
+                  This is a coding erorr. <br>
+                  Failed to insert user: " . implode(", ", $errors),
       );
     }
+  }
+  
+  /**
+   * @throws Failure
+   */
+  public static function getUserById(int $id): ?UserData {
+    $val = App::queryForOne(
+      sql:                    "SELECT * FROM users WHERE id = :id",
+      classNameWithNamespace: UserData::class,
+      params:                 ["id" => $id]
+    );
+    assert($val instanceof UserData || $val === null);
+    return $val;
   }
   
   /**
    * @throws Failure
    */
   public static function getUserByUsername(string $username): ?UserData {
-    $sql = "SELECT * FROM users WHERE username = :username LIMIT 1";
-    try {
-      $stmt = App::$pdo->prepare($sql);
-      $stmt->execute(["username" => $username]);
-      $stmt->setFetchMode(PDO::FETCH_CLASS, UserData::class);
-      return $stmt->fetch();
-    } catch (Exception $e) {
-      throw new Failure(
-        userDisplayError: "Database error: Ask the admin to check the logs.",
-        message:          "Failed to get user by username: " . $sql . " the username was: " . $username,
-        previous:         $e
-      );
-    }
+    $val = App::queryForOne(
+      sql:                    "SELECT * FROM users WHERE username = :username LIMIT 1",
+      classNameWithNamespace: UserData::class,
+      params:                 ["username" => $username]
+    );
+    assert($val instanceof UserData || $val === null);
+    return $val;
   }
   
   /**
    * @throws Failure
    */
   public static function getUserByEmail(string $email): ?UserData {
-    $sql = "SELECT * FROM users WHERE email = :email LIMIT 1";
-    try {
-      $stmt = App::$pdo->prepare($sql);
-      $stmt->execute(["email" => $email]);
-      $stmt->setFetchMode(PDO::FETCH_CLASS, UserData::class);
-      return $stmt->fetch();
-    } catch (Exception $e) {
-      throw new Failure(
-        userDisplayError: "Database error: Ask the admin to check the logs.",
-        message:          "Failed to get user by email: " . $sql . " the email was: " . $email,
-        previous:         $e
-      );
-    }
+    $val = App::queryForOne(
+      sql:                    "SELECT * FROM users WHERE email = :email LIMIT 1",
+      classNameWithNamespace: UserData::class,
+      params:                 ["email" => $email]
+    );
+    assert($val instanceof UserData || $val === null);
+    return $val;
   }
   
   /**
    * @throws Failure
    */
   public static function getUserByVerificationCode(string $verification_code): ?UserData {
-    $sql = "SELECT * FROM users WHERE verification_code = :verification_code LIMIT 1";
-    try {
-      $stmt = App::$pdo->prepare($sql);
-      $stmt->execute(["verification_code" => $verification_code]);
-      $stmt->setFetchMode(PDO::FETCH_CLASS, UserData::class);
-      return $stmt->fetch();
-    } catch (Exception $e) {
-      throw new Failure(
-        userDisplayError: "Database error: Ask the admin to check the logs.",
-        message:          "Failed to get user by verification code: " . $sql . " the verification code was: " . $verification_code,
-        previous:         $e
-      );
-    }
+    $val = App::queryForOne(
+      sql:                    "SELECT * FROM users WHERE verification_code = :verification_code LIMIT 1",
+      classNameWithNamespace: UserData::class,
+      params:                 ["verification_code" => $verification_code]
+    );
+    assert($val instanceof UserData || $val === null);
+    return $val;
   }
   
   /**
    * @throws Failure
    */
   public static function getUserByUsernameOrEmail(string $usernameOrEmail): ?UserData {
-    $user = self::getUserByUsername($usernameOrEmail);
-    if ($user === null) {
-      $user = self::getUserByEmail($usernameOrEmail);
-    }
-    return $user;
+    $val = App::queryForOne(
+      sql:                    "SELECT * FROM users WHERE username = :usernameOrEmail OR email = :usernameOrEmail LIMIT 1",
+      classNameWithNamespace: UserData::class,
+      params:                 ["usernameOrEmail" => $usernameOrEmail]
+    );
+    assert($val instanceof UserData || $val === null);
+    return $val;
   }
   
   /**
@@ -160,34 +159,17 @@ class UserData {
    * @throws Failure
    */
   public function getAllUsers(): array {
-    $sql = "SELECT * FROM users";
-    try {
-      $stmt = App::$pdo->prepare($sql);
-      $stmt->execute();
-      $stmt->setFetchMode(PDO::FETCH_CLASS, UserData::class);
-      return $stmt->fetchAll();
-    } catch (Exception $e) {
-      throw new Failure(
-        userDisplayError: "Database error: Ask the admin to check the logs.",
-        message:          "Failed to get all users: " . $sql,
-        previous:         $e
-      );
-    }
+    return App::queryForList(
+      sql:                    "SELECT * FROM users",
+      classNameWithNamespace: UserData::class
+    );
   }
   
   /**
    * @throws Failure
    */
   public function update(PDO $pdo): void {
-    $errors = $this->checkUserDataCorrectness();
-    if (count($errors) > 0) {
-      throw new Failure(
-        userDisplayError: "Failed to update user because of internal error by bad coding.",
-        message:          "Bad Userdata reached update function.<br>
-                  This is a coding erorr. <br>
-                  Failed to insert user: " . implode(", ", $errors),
-      );
-    }
+    $this->checkCorrectnessWhereCorrectnessIsExpected(__FUNCTION__);
     $sql = "UPDATE users SET username = :username, email = :email, password = :password, verified = :verified, verification_code = :verification_code WHERE id = :id";
     try {
       
@@ -239,18 +221,8 @@ class UserData {
   /**
    * @throws Failure
    */
-  public function insert(PDO $pdo): void {
-    
-    $errors = $this->checkUserDataCorrectness();
-    if (count($errors) > 0) {
-      throw new Failure(
-        userDisplayError: "Failed to insert user because of internal error by bad coding.",
-        message:          "Bad Userdata reached insert function.<br>
-                  This is a coding erorr. <br>
-                  Failed to insert user: " . implode(", ", $errors),
-      );
-    }
-    
+  public function insert(): void {
+    $this->checkCorrectnessWhereCorrectnessIsExpected(__FUNCTION__);
     $sql = "
         INSERT INTO users (
             username,
@@ -266,37 +238,17 @@ class UserData {
             :verification_code
         )
     ";
-    try {
-      $stmt = $pdo->prepare($sql);
-      
-      $stmt->execute(
-        [
-          "username"          => $this->username,
-          "email"             => $this->email,
-          "password"          => $this->password,
-          "verification_code" => $this->verification_code,
-          "verified"          => $this->verified,
-        ]
-      );
-    } catch (Exception $e) {
-      throw new Failure(
-        userDisplayError: "Database error: Ask the admin to check the logs.",
-        message:          "Failed to insert user: " . $sql . " the data was: " . json_encode($this),
-        previous:         $e
-      );
-    }
-    
-    $lastInsertedId = $pdo->lastInsertId();
-    
-    if ($lastInsertedId !== false) {
-      $this->id = (int)$lastInsertedId;
-    } else {
-      throw new Failure(
-        userDisplayError: "Failed to insert user.",
-        message:          "Failed to insert user: lastInsertId returned false.",
-      );
-    }
-    
+    $id = App::insertEntry(
+      sql: $sql,
+      params: ([
+        "username"          => $this->username,
+        "email"             => $this->email,
+        "verified"          => $this->verified,
+        "password"          => $this->password,
+        "verification_code" => $this->verification_code,
+      ])
+    );
+    $this->id = $id;
   }
   
   /**
@@ -312,3 +264,27 @@ class UserData {
   
   
 }
+
+
+####
+#  TEST DATA
+####
+
+if(__debug__):
+  
+  UserData::$test_user_data = [];
+  
+  # this entry is first so it gets the id 1
+  $u1 = new UserData();
+  $u1->username = "majo";
+  $u1->email = "hackermanmajo@gmail.com";
+  $u1->password = password_hash("123", PASSWORD_DEFAULT);
+  $u1->verified = 1;
+  $u1->verification_code = "123";
+  
+  UserData::$test_user_data[] = $u1;
+  
+  # todo: add more ...
+  
+endif;
+

@@ -1,6 +1,9 @@
 <?php
 
 declare(strict_types=1);
+
+use data\failure\Failure;
+
 const __debug__ = true;
 
 // display errors
@@ -14,15 +17,17 @@ ini_set('display_errors', '1');
 # set timezone
 date_default_timezone_set('Europe/Berlin');
 # throw error on warning
-set_error_handler(function (
+set_error_handler(/**
+ * @throws ErrorException
+ */ function (
   $errno,
   $errstr,
   $errfile,
   $errline
 ) {
-  if (App::$logFile !== null){
+  if (App::$logFile !== null) {
     App::logInfo("Error: $errstr in $errfile on line $errline");
-  }else{
+  } else {
     echo "GOT ERROR, BUT CANT LOG; LOGFILE IS NULL";
   }
   throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
@@ -30,7 +35,11 @@ set_error_handler(function (
 
 
 // autoloader by namespace
-spl_autoload_register(function ($class) {
+spl_autoload_register(/**
+ * @throws Exception
+ */ function (
+  $class
+) {
   $class = str_replace("\\", "/", $class);
   $file = __DIR__ . "/$class.php";
   if (file_exists($file)) {
@@ -48,7 +57,7 @@ class App {
   /**
    * @var Resource
    */
-  static        $logFile;
+  static $logFile;
   static string $logFilePath;
   
   static function logAction(string $actionName) {
@@ -63,7 +72,7 @@ class App {
     }
   }
   
-  static PDO   $pdo;
+  static PDO $pdo;
   static array $user_data = [];
   
   static function isLoggedIn(): bool {
@@ -100,6 +109,292 @@ class App {
   
   static function createUserDataBase(): void {
     \data\userdata\UserData::createTable();
+  }
+  
+  /**
+   * @throws Failure
+   */
+  static function queryForOne(
+    string $sql,
+    string $classNameWithNamespace,
+    array  $params = [],
+    string $debugErrorMessage = "Database error",
+    string $userErrorMessage = "Database error: Ask the admin to check the logs.",
+  ): mixed {
+    try {
+      $stmt = App::$pdo->prepare($sql);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error preparing statement: "
+          . "Class: " . $classNameWithNamespace . PHP_EOL
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+    try {
+      $stmt->execute($params);
+      $stmt->setFetchMode(
+        mode:      PDO::FETCH_CLASS,
+        className: $classNameWithNamespace
+      );
+      $val = $stmt->fetch();
+      if ($val === false) {
+        App::logInfo(
+          info: "No result for query: $sql with params: "
+                . json_encode($params)
+        );
+        return null;
+      }
+      App::logInfo(
+        info: "Result for query: $sql with params: "
+              . json_encode($params)
+              . " is: "
+              . json_encode($val)
+      );
+      return $val;
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error executing statement: "
+          . "Class: " . $classNameWithNamespace . PHP_EOL
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+  }
+  
+  /**
+   * @throws Failure
+   */
+  static function queryForList(
+    string $sql,
+    string $classNameWithNamespace,
+    array  $params = [],
+    string $debugErrorMessage = "Database error",
+    string $userErrorMessage = "Database error: Ask the admin to check the logs.",
+  ): array {
+    try {
+      $stmt = App::$pdo->prepare($sql);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error preparing statement: "
+          . "Class: " . $classNameWithNamespace . PHP_EOL
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+    try {
+      $stmt->execute($params);
+      $stmt->setFetchMode(
+        mode:      PDO::FETCH_CLASS,
+        className: $classNameWithNamespace
+      );
+      $val = $stmt->fetchAll();
+      if ($val === false) {
+        App::logInfo(
+          info: "No result for query: $sql with params: "
+                . json_encode($params)
+        );
+        return [];
+      }
+      App::logInfo(
+        info: "Got result for query: $sql with params: "
+              . json_encode($params)
+      );
+      return $val;
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error executing statement: "
+          . "Class: " . $classNameWithNamespace . PHP_EOL
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+  }
+  
+  /**
+   * @throws Failure
+   */
+  static function deleteEntry(
+    string $sql,
+    array  $params = [],
+    string $debugErrorMessage = "Database error",
+    string $userErrorMessage = "Database error: Ask the admin to check the logs.",
+  ){
+    try {
+      $stmt = App::$pdo->prepare($sql);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error preparing statement: "
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+    try {
+      $stmt->execute($params);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error executing statement: "
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+  }
+  
+  /**
+   * @throws Failure
+   */
+  static function updateEntry(
+    $sql,
+    $params = [],
+    string $debugErrorMessage = "Database error",
+    string $userErrorMessage = "Database error: Ask the admin to check the logs.",
+  ): void {
+    try {
+      $stmt = App::$pdo->prepare($sql);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error preparing statement: "
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+    try {
+      $stmt->execute($params);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error executing statement: "
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+  }
+  
+  /**
+   * @throws Failure
+   */
+  public static function insertEntry(
+    $sql,
+    $params = [],
+    string $debugErrorMessage = "Database error",
+    string $userErrorMessage = "Database error: Ask the admin to check the logs.",
+  ): int {
+    
+    try {
+      $stmt = App::$pdo->prepare($sql);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error preparing statement: "
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+    try {
+      $stmt->execute($params);
+    } catch (Exception $e) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error executing statement: "
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+          . $e->getMessage()
+        ),
+        previous:         $e
+      );
+    }
+    
+    
+    $id = App::$pdo->lastInsertId();
+    if ($id === false) {
+      throw new Failure(
+        userDisplayError: $userErrorMessage,
+        message: (
+          $debugErrorMessage . PHP_EOL
+          . "Error getting last insert id: "
+          . $sql . PHP_EOL
+          . "Params: "
+          . json_encode($params)
+          . PHP_EOL . "Error: "
+        )
+      );
+    }
+    return (int)$id;
+    
   }
   
   static function createPostDataBase(): void {
@@ -237,7 +532,7 @@ if (__debug__) {
   #echo App::$logFilePath;
   App::$logFile = fopen(App::$logFilePath, "a+");
   if (!App::$logFile) {
-    echo "Error: Could not open log file: ". App::$logFilePath;
+    echo "Error: Could not open log file: " . App::$logFilePath;
     exit();
   }
 }

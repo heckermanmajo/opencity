@@ -47,45 +47,6 @@ if (isset($_POST["action"])) {
     );
     
     ###############################################
-    # UPDATE POST
-    ###############################################
-  } elseif ($_POST["action"] === "update_post") {
-    
-    // check that I am the owner
-    $sql = "SELECT * FROM posts WHERE id = :id";
-    
-    $stmt = App::$pdo->prepare($sql);
-    
-    $stmt->execute(
-      [
-        "id" => $_POST["post_id"]
-      ]
-    );
-    
-    $post = $stmt->fetch();
-    
-    if ($post["author_user_id"] !== $_SESSION["user_id"]) {
-      die("You are not the owner of this post.");
-    }
-    
-    $sql = "UPDATE posts SET title = :title, content = :content, image = :image, weblink = :weblink, category = :category, topic = :topic, searchTags = :searchTags WHERE id = :id";
-    
-    $stmt = App::$pdo->prepare($sql);
-    
-    $stmt->execute(
-      [
-        "id"         => $_POST["post_id"],
-        "title"      => $_POST["title"],
-        "content"    => $_POST["content"],
-        "image"      => $_POST["image"],
-        "weblink"    => $_POST["weblink"],
-        "category"   => $_POST["category"],
-        "topic"      => $_POST["topic"],
-        "searchTags" => $_POST["searchTags"]
-      ]
-    );
-    
-    ###############################################
     # CREATE COMMENT
     ###############################################
   } elseif ($_POST["action"] === "create_comment") {
@@ -182,21 +143,7 @@ echo "<div class='w3-row-padding' style='margin:0 -16px'>";
 echo "</div>";
 
 if ($post["author_user_id"] === $_SESSION["user_id"]) {
-  echo "<form method='post'>";
-  echo "<input type='hidden' name='action' value='delete_post'>";
-  echo "<input type='hidden' name='post_id' value='" . $post["id"] . "'>";
-  echo "<input type='submit' value='Delete Post'>";
-  echo "</form>";
-  
-  echo "<form method='post'>";
-  echo "<input type='hidden' name='action' value='update_post'>";
-  echo "<input type='hidden' name='post_id' value='" . $post["id"] . "'>";
-  echo "<input type='submit' value='Update Post'>";
-  echo "</form>";
-  
-  
-  echo "<a href='edit.php?class=Post&id=" . $post["id"] . "' class='w3-button w3-blue'> Diesen Post Bearbeiten </a>";
-  echo "<br><br>";
+
 }
 
 echo "</div>";
