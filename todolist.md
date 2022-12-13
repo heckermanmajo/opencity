@@ -1,0 +1,23 @@
+- support post (ajax)
+- select one post for detail view: new file
+- create message under post
+- search post-db
+- pagination by get-params
+- create also user profile on register
+- edit profile
+- add hashtags to posts
+- Filter by category, topic, searchTags
+- display profile-pages: also list posts under profile
+- make username in post to a link to the user
+- add location to posts
+- accept file upload: Use app function for this
+- use url-whitelist
+- delete my account
+- impressum
+- add Kill Post Date to posts
+- mark "loggedin" users as currently online
+- create a cronjob to set users to offline after 10 minutes
+- create an action list for each interaction
+- create news entry for each interaction with your posts
+- mark posts as fav (automark your own posts as fav)
+  // for multi city user, use different db-files, for the start use only one
