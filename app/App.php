@@ -152,8 +152,8 @@ class App {
     try {
       $stmt->execute($params);
       $stmt->setFetchMode(
-        mode:      PDO::FETCH_CLASS,
-        className: $classNameWithNamespace
+        PDO::FETCH_CLASS,
+        $classNameWithNamespace
       );
       $val = $stmt->fetch();
       if ($val === false) {

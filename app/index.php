@@ -220,7 +220,11 @@ if (App::isLoggedIn()) {
                   as j_i_support
   
         FROM posts ORDER BY created_at DESC");
-    $stmt->execute(["id" => $_SESSION["user"]->id]);
+    
+    var_dump($_SESSION["user"]);
+    # exit();
+    # todo: why is this an array =???
+    $stmt->execute(["id" => $_SESSION["user"]["id"]]);
     $posts = $stmt->fetchAll();
     
     foreach ($posts as $post) {

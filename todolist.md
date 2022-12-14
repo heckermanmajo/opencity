@@ -1,3 +1,5 @@
+- Put Post into class and test it
+- 
 - support post (ajax)
 - select one post for detail view: new file
 - create message under post
