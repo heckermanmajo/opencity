@@ -4,6 +4,7 @@
 
 // include the app
 include "lib.php";
+App::init();
 
 // get the action
 $action = $_GET["action"] ?? throw new Exception("No action given");

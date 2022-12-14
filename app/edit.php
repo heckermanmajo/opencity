@@ -1,6 +1,7 @@
 <?php
 
 include "lib.php";
+App::init();
 
 $class = $_GET["class"] ?? throw new Exception("No class given");
 

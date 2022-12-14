@@ -6,6 +6,7 @@ use data\post\Post;
 use data\userdata\UserData;
 
 include "lib.php";
+App::init();
 
 echo App::pageTop();
 

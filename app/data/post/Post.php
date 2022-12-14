@@ -5,6 +5,7 @@ namespace data\post;
 use App;
 
 class Post {
+  
   public static function createAndUpdateTable(): void {
     App::createTable("posts");
     App::addColumn("posts", "author_user_id", "INTEGER DEFAULT 0");

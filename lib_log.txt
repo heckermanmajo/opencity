@@ -1,2 +1,0 @@
-Connected to database
-User not logged in

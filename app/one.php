@@ -1,5 +1,6 @@
 <?php
 include "lib.php";
+App::init();
 ?>
 <!DOCTYPE html>
 <html lang="de">

@@ -8,7 +8,6 @@ use App;
 use data\failure\CorrectnessProblem;
 use data\failure\Failure;
 use Exception;
-use http\Client\Curl\User;
 use PDO;
 
 # todo: format sql strings
@@ -127,6 +126,7 @@ class UserData {
     return $val;
   }
   
+  
   /**
    * @return array<string, array<CorrectnessProblem>> Field-names mapped on their correctness problems.
    *         The key "__data" is used for problems with the whole data entry.
@@ -158,7 +158,7 @@ class UserData {
    * @return array<UserData>
    * @throws Failure
    */
-  public function getAllUsers(): array {
+  public static function getAllUsers(): array {
     return App::queryForList(
       sql:                    "SELECT * FROM users",
       classNameWithNamespace: UserData::class
@@ -168,12 +168,12 @@ class UserData {
   /**
    * @throws Failure
    */
-  public function update(PDO $pdo): void {
+  public function update(): void {
     $this->checkCorrectnessWhereCorrectnessIsExpected(__FUNCTION__);
     $sql = "UPDATE users SET username = :username, email = :email, password = :password, verified = :verified, verification_code = :verification_code WHERE id = :id";
     try {
       
-      $stmt = $pdo->prepare($sql);
+      $stmt = App::$pdo->prepare($sql);
       $stmt->execute(
         [
           "id"                => $this->id,
@@ -254,37 +254,29 @@ class UserData {
   /**
    * @throws Failure
    */
-  public function save(PDO $pdo): void {
+  public function save(): void {
     if ($this->id === -1) {
-      $this->insert($pdo);
+      $this->insert();
     } else {
-      $this->update($pdo);
+      $this->update();
     }
   }
   
+  public static function createTestData(): void {
+    UserData::$test_user_data = [];
+    
+    # this entry is first so it gets the id 1
+    $u1 = new UserData();
+    $u1->username = "majo";
+    $u1->email = "hackermanmajo@gmail.com";
+    $u1->password = password_hash("123", PASSWORD_DEFAULT);
+    $u1->verified = 1;
+    $u1->verification_code = "123";
+    
+    UserData::$test_user_data[] = $u1;
+    
+    # todo: add more ...
+  }
   
 }
-
-
-####
-#  TEST DATA
-####
-
-if(__debug__):
-  
-  UserData::$test_user_data = [];
-  
-  # this entry is first so it gets the id 1
-  $u1 = new UserData();
-  $u1->username = "majo";
-  $u1->email = "hackermanmajo@gmail.com";
-  $u1->password = password_hash("123", PASSWORD_DEFAULT);
-  $u1->verified = 1;
-  $u1->verification_code = "123";
-  
-  UserData::$test_user_data[] = $u1;
-  
-  # todo: add more ...
-  
-endif;
 
